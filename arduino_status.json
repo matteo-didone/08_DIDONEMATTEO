@@ -1,5 +1,15 @@
 {
-  "connected": false,
-  "port": null,
-  "timestamp": "2025-07-21T10:54:49.707Z"
+  "connected": true,
+  "port": "/dev/tty.usbmodem21101",
+  "timestamp": "2025-07-21T12:34:13.394Z",
+  "currentWork": {
+    "active": true,
+    "lavorazioneId": "6",
+    "identificativo": "FRONTEND_TEST",
+    "nome": "Test da Frontend",
+    "startTime": 1753101121307,
+    "duration": 15,
+    "remaining": 0,
+    "status": "AVVIATA"
+  }
 }

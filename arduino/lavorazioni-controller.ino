@@ -29,6 +29,12 @@ unsigned long lastUpdate = 0;      // Timing controllo
 unsigned long lastCountdown = 0;   // Timing countdown
 unsigned long stateChangeTime = 0; // Tempo cambio stato
 
+// *** AGGIUNTO: Flag per gestire beep una sola volta ***
+bool beepEmitted = false;
+
+// *** CONFIGURAZIONE BUZZER CORRETTA ***
+const int BUZZER_PIN = 3; // Il tuo buzzer funziona su Pin 3!
+
 void setup()
 {
     Serial.begin(9600);
@@ -49,6 +55,8 @@ void setup()
     Serial.println("   - Pulsante 1: Info/Accetta lavorazione");
     Serial.println("   - Pulsante 2: Avvia lavorazione");
     Serial.println("   - Pulsante 3: Rifiuta/Cancella");
+    Serial.println("===========================================");
+    Serial.println("🔊 Buzzer configurato su Pin " + String(BUZZER_PIN));
     Serial.println("===========================================");
     Serial.println();
 
@@ -128,6 +136,9 @@ void parseLavorazione(String jsonString)
         Serial.println("   📊 Stato: IN_CODA - In attesa accettazione");
         Serial.println();
 
+        // LED per indicare lavorazione in coda (specifica esame)
+        MFS.writeLeds(LED_ALL, OFF);
+        MFS.writeLeds(LED_1, ON); // LED 1 = lavorazione in coda
         MFS.write("CODA");
     }
     else
@@ -203,6 +214,9 @@ void accettaLavorazione()
     currentState = LAVORAZIONE_ACCETTATA;
     stateChangeTime = millis();
 
+    // LED spenti, display primi caratteri nome (specifica esame)
+    MFS.writeLeds(LED_ALL, OFF);
+
     // Mostra primi caratteri nome lavorazione sul display
     String displayName = nomeLavorazione.substring(0, min(4, (int)nomeLavorazione.length()));
     displayName.toUpperCase();
@@ -225,6 +239,10 @@ void avviaLavorazione()
     lastCountdown = millis();
     stateChangeTime = millis();
 
+    // LED 2 acceso durante lavorazione (specifica esame)
+    MFS.writeLeds(LED_ALL, OFF);
+    MFS.writeLeds(LED_2, ON); // LED 2 = lavorazione in corso
+
     // Display countdown
     updateCountdownDisplay();
 
@@ -243,6 +261,10 @@ void rifiutaLavorazione()
     currentState = LAVORAZIONE_RIFIUTATA;
     stateChangeTime = millis();
 
+    // LED 3 per rifiuto (specifica esame)
+    MFS.writeLeds(LED_ALL, OFF);
+    MFS.writeLeds(LED_3, ON);
+
     // Display "canc" per 3 secondi (specifica esame)
     MFS.write("CANC");
 
@@ -260,6 +282,10 @@ void cancellaLavorazione()
     currentState = LAVORAZIONE_RIFIUTATA;
     stateChangeTime = millis();
 
+    // LED 3 per cancellazione
+    MFS.writeLeds(LED_ALL, OFF);
+    MFS.writeLeds(LED_3, ON);
+
     // Display "canc" per 3 secondi
     MFS.write("CANC");
 
@@ -276,6 +302,11 @@ void completaLavorazione()
 {
     currentState = LAVORAZIONE_COMPLETATA;
     stateChangeTime = millis();
+    beepEmitted = false; // Reset flag per permettere nuovo beep
+
+    // LED 4 per completamento (specifica esame)
+    MFS.writeLeds(LED_ALL, OFF);
+    MFS.writeLeds(LED_4, ON);
 
     // Display "end" per 3 secondi (specifica esame)
     MFS.write("END");
@@ -298,9 +329,6 @@ void handleCurrentState()
 {
     unsigned long currentTime = millis();
 
-    // *** AGGIUNGI QUESTA RIGA ***
-    updateLEDStates();
-
     switch (currentState)
     {
     case WAITING_LAVORAZIONE:
@@ -317,8 +345,7 @@ void handleCurrentState()
         if (currentTime - lastUpdate > 1000)
         {
             static bool showCoda = true;
-            // *** RIMUOVI QUESTA RIGA ***
-            // MFS.writeLeds(LED_1, ON);
+            MFS.writeLeds(LED_1, ON);
 
             if (showCoda)
             {
@@ -362,10 +389,18 @@ void handleCurrentState()
         break;
 
     case LAVORAZIONE_COMPLETATA:
-        // *** MODIFICA: Beep migliorato ***
-        if (currentTime - stateChangeTime < 500)
+        // *** SISTEMATO: Beep una sola volta con Pin 3 ***
+        if (!beepEmitted)
         {
-            emitCompletionBeep();
+            // *** CORRETTO: Usa Pin 3 invece di Pin 8 ***
+            tone(BUZZER_PIN, 1000, 250); // 1000Hz per 250ms
+            delay(250);
+            tone(BUZZER_PIN, 1500, 250); // 1500Hz per 250ms
+            delay(250);
+            tone(BUZZER_PIN, 1000, 250); // 1000Hz per 250ms
+
+            Serial.println("🔊 Beep completamento emesso su Pin " + String(BUZZER_PIN) + "!");
+            beepEmitted = true;
         }
 
         // Mostra "END" per 3 secondi, poi resetta
@@ -408,6 +443,7 @@ void resetSistema()
     lavorazioneId = 0;
     durataSecondi = 0;
     countdownSecondi = 0;
+    beepEmitted = false; // Reset flag beep
 
     MFS.writeLeds(LED_ALL, OFF);
     MFS.write("WAIT");
@@ -433,72 +469,24 @@ void printSystemStatus()
 }
 
 // =====================================
-// GESTIONE LED MIGLIORATA - SPECIFICHE ESAME
+// GESTIONE BUZZER CORRETTO
 // =====================================
 
-void updateLEDStates()
-{
-    // Spegni tutti i LED prima di impostare il nuovo stato
-    MFS.writeLeds(LED_ALL, OFF);
-
-    switch (currentState)
-    {
-    case LAVORAZIONE_IN_CODA:
-        // LED 1 = lavorazione in coda (specifica esame)
-        MFS.writeLeds(LED_1, ON);
-        break;
-
-    case LAVORAZIONE_ACCETTATA:
-        // LED spenti durante visualizzazione nome (specifica esame)
-        MFS.writeLeds(LED_ALL, OFF);
-        break;
-
-    case COUNTDOWN_ATTIVO:
-        // LED 2 = lavorazione in corso (specifica esame)
-        MFS.writeLeds(LED_2, ON);
-        break;
-
-    case LAVORAZIONE_RIFIUTATA:
-        // LED 3 = rifiuto/cancellazione (specifica esame)
-        MFS.writeLeds(LED_3, ON);
-        break;
-
-    case LAVORAZIONE_COMPLETATA:
-        // LED 4 = completamento (specifica esame)
-        MFS.writeLeds(LED_4, ON);
-        break;
-
-    case WAITING_LAVORAZIONE:
-    default:
-        // Tutti LED spenti in attesa
-        MFS.writeLeds(LED_ALL, OFF);
-        break;
-    }
-}
-
-// Migliora la funzione beep per essere più chiara
-void emitCompletionBeep()
-{
-    // Beep più distintivo per fine lavorazione - 250ms come richiesto
-    for (int i = 0; i < 3; i++)
-    {
-        tone(8, 1000, 250); // 1000Hz per 250ms
-        delay(250);
-        tone(8, 1500, 250); // 1500Hz per 250ms
-        delay(250);
-    }
-}
-
-// =====================================
-// GESTIONE INTERRUPTS E BEEP
-// =====================================
-
-// Funzione beep semplificata per Multi Function Shield
+// *** CORRETTO: Funzione beep con Pin 3 ***
 void beepSound()
 {
-    // Il Multi Function Shield ha un buzzer integrato
-    // Questa funzione può essere espansa per gestire il beep
-    tone(8, 1000, 500); // Pin 8, 1000Hz, 500ms
+    tone(BUZZER_PIN, 1000, 500); // Pin 3, 1000Hz, 500ms
+}
+
+// Funzione per beep di completamento
+void emitCompletionBeep()
+{
+    Serial.println("🔊 Beep completamento - Pin " + String(BUZZER_PIN));
+    tone(BUZZER_PIN, 1000, 250);
+    delay(250);
+    tone(BUZZER_PIN, 1500, 250);
+    delay(250);
+    tone(BUZZER_PIN, 1000, 250);
 }
 
 // Debug function per stato LED
