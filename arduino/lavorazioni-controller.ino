@@ -105,7 +105,7 @@ void parseLavorazione(String jsonString)
 
     if (error)
     {
-        Serial.println("❌ Errore parsing JSON lavorazione: " + String(error.c_str()));
+        Serial.println("Errore parsing JSON lavorazione: " + String(error.c_str()));
         MFS.write("ERR");
         delay(2000);
         MFS.write("WAIT");
@@ -129,11 +129,11 @@ void parseLavorazione(String jsonString)
         stateChangeTime = millis();
 
         Serial.println("📋 Lavorazione ricevuta:");
-        Serial.println("   🆔 ID: " + String(lavorazioneId));
-        Serial.println("   🏷️  Identificativo: " + identificativo);
-        Serial.println("   📝 Nome: " + nomeLavorazione);
-        Serial.println("   ⏱️  Durata: " + String(durataSecondi) + " secondi");
-        Serial.println("   📊 Stato: IN_CODA - In attesa accettazione");
+        Serial.println("ID: " + String(lavorazioneId));
+        Serial.println("Identificativo: " + identificativo);
+        Serial.println("Nome: " + nomeLavorazione);
+        Serial.println("Durata: " + String(durataSecondi) + " secondi");
+        Serial.println("Stato: IN_CODA - In attesa accettazione");
         Serial.println();
 
         // LED per indicare lavorazione in coda (specifica esame)
@@ -143,7 +143,7 @@ void parseLavorazione(String jsonString)
     }
     else
     {
-        Serial.println("❌ JSON lavorazione non valido - campi 'id', 'name' e 'durata' richiesti");
+        Serial.println("JSON lavorazione non valido - campi 'id', 'name' e 'durata' richiesti");
         MFS.write("BAD");
         delay(2000);
         MFS.write("WAIT");
@@ -225,11 +225,11 @@ void accettaLavorazione()
     // Notifica gateway
     Serial.println("ACCETTATA:" + String(lavorazioneId));
 
-    Serial.println("✅ Lavorazione accettata:");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   🆔 Display: " + displayName);
-    Serial.println("   📊 Stato: ACCETTATA - Pronta per avvio");
-    Serial.println("   💡 Premere pulsante 2 per avviare");
+    Serial.println("Lavorazione accettata:");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Display: " + displayName);
+    Serial.println("Stato: ACCETTATA - Pronta per avvio");
+    Serial.println("Premere pulsante 2 per avviare");
 }
 
 void avviaLavorazione()
@@ -249,11 +249,11 @@ void avviaLavorazione()
     // Notifica gateway
     Serial.println("AVVIATA:" + String(lavorazioneId));
 
-    Serial.println("🚀 Lavorazione avviata:");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   ⏱️  Countdown: " + String(countdownSecondi) + " secondi");
-    Serial.println("   📊 Stato: COUNTDOWN_ATTIVO");
-    Serial.println("   🚫 Premere pulsante 3 per cancellare");
+    Serial.println("Lavorazione avviata:");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Countdown: " + String(countdownSecondi) + " secondi");
+    Serial.println("Stato: COUNTDOWN_ATTIVO");
+    Serial.println("Premere pulsante 3 per cancellare");
 }
 
 void rifiutaLavorazione()
@@ -271,10 +271,10 @@ void rifiutaLavorazione()
     // Notifica gateway
     Serial.println("RIFIUTATA:" + String(lavorazioneId));
 
-    Serial.println("❌ Lavorazione rifiutata:");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   📊 Stato: RIFIUTATA");
-    Serial.println("   ⏱️  Display 'CANC' per 3 secondi");
+    Serial.println("Lavorazione rifiutata:");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Stato: RIFIUTATA");
+    Serial.println("Display 'CANC' per 3 secondi");
 }
 
 void cancellaLavorazione()
@@ -292,10 +292,10 @@ void cancellaLavorazione()
     // Notifica gateway
     Serial.println("CANCELLATA:" + String(lavorazioneId));
 
-    Serial.println("🚫 Lavorazione cancellata:");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   ⏱️  Countdown interrotto a: " + String(countdownSecondi) + "s");
-    Serial.println("   📊 Stato: CANCELLATA");
+    Serial.println("Lavorazione cancellata:");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Countdown interrotto a: " + String(countdownSecondi) + "s");
+    Serial.println("Stato: CANCELLATA");
 }
 
 void completaLavorazione()
@@ -314,11 +314,11 @@ void completaLavorazione()
     // Notifica gateway
     Serial.println("COMPLETATA:" + String(lavorazioneId));
 
-    Serial.println("🏁 Lavorazione completata!");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   ⏱️  Durata: " + String(durataSecondi) + " secondi");
-    Serial.println("   📊 Stato: COMPLETATA");
-    Serial.println("   🔊 Beep emesso + Display 'END' per 3 secondi");
+    Serial.println("Lavorazione completata!");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Durata: " + String(durataSecondi) + " secondi");
+    Serial.println("Stato: COMPLETATA");
+    Serial.println("Beep emesso + Display 'END' per 3 secondi");
 }
 
 // =====================================
@@ -389,16 +389,10 @@ void handleCurrentState()
         break;
 
     case LAVORAZIONE_COMPLETATA:
-        // *** SISTEMATO: Beep una sola volta con Pin 3 ***
         if (!beepEmitted)
         {
-            // *** CORRETTO: Usa Pin 3 invece di Pin 8 ***
+            // Un singolo beep di 250ms, senza delay che bloccano il loop
             tone(BUZZER_PIN, 1000, 250); // 1000Hz per 250ms
-            delay(250);
-            tone(BUZZER_PIN, 1500, 250); // 1500Hz per 250ms
-            delay(250);
-            tone(BUZZER_PIN, 1000, 250); // 1000Hz per 250ms
-
             Serial.println("🔊 Beep completamento emesso su Pin " + String(BUZZER_PIN) + "!");
             beepEmitted = true;
         }
@@ -471,11 +465,11 @@ void printSystemStatus()
 // =====================================
 // GESTIONE BUZZER CORRETTO
 // =====================================
-
-// *** CORRETTO: Funzione beep con Pin 3 ***
-void beepSound()
+void emitCompletionBeep()
 {
-    tone(BUZZER_PIN, 1000, 500); // Pin 3, 1000Hz, 500ms
+    // Un singolo beep semplice e efficace
+    tone(BUZZER_PIN, 1000, 250); // Pin 3, 1000Hz, 250ms
+    Serial.println("🔊 Beep completamento - Pin " + String(BUZZER_PIN));
 }
 
 // Funzione per beep di completamento
