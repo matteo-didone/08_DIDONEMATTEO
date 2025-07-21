@@ -29,12 +29,6 @@ unsigned long lastUpdate = 0;      // Timing controllo
 unsigned long lastCountdown = 0;   // Timing countdown
 unsigned long stateChangeTime = 0; // Tempo cambio stato
 
-// *** AGGIUNTO: Flag per gestire beep una sola volta ***
-bool beepEmitted = false;
-
-// *** CONFIGURAZIONE BUZZER CORRETTA ***
-const int BUZZER_PIN = 3; // Il tuo buzzer funziona su Pin 3!
-
 void setup()
 {
     Serial.begin(9600);
@@ -55,8 +49,6 @@ void setup()
     Serial.println("   - Pulsante 1: Info/Accetta lavorazione");
     Serial.println("   - Pulsante 2: Avvia lavorazione");
     Serial.println("   - Pulsante 3: Rifiuta/Cancella");
-    Serial.println("===========================================");
-    Serial.println("🔊 Buzzer configurato su Pin " + String(BUZZER_PIN));
     Serial.println("===========================================");
     Serial.println();
 
@@ -105,7 +97,7 @@ void parseLavorazione(String jsonString)
 
     if (error)
     {
-        Serial.println("Errore parsing JSON lavorazione: " + String(error.c_str()));
+        Serial.println("❌ Errore parsing JSON lavorazione: " + String(error.c_str()));
         MFS.write("ERR");
         delay(2000);
         MFS.write("WAIT");
@@ -129,11 +121,11 @@ void parseLavorazione(String jsonString)
         stateChangeTime = millis();
 
         Serial.println("📋 Lavorazione ricevuta:");
-        Serial.println("ID: " + String(lavorazioneId));
-        Serial.println("Identificativo: " + identificativo);
-        Serial.println("Nome: " + nomeLavorazione);
-        Serial.println("Durata: " + String(durataSecondi) + " secondi");
-        Serial.println("Stato: IN_CODA - In attesa accettazione");
+        Serial.println("   🆔 ID: " + String(lavorazioneId));
+        Serial.println("   🏷️  Identificativo: " + identificativo);
+        Serial.println("   📝 Nome: " + nomeLavorazione);
+        Serial.println("   ⏱️  Durata: " + String(durataSecondi) + " secondi");
+        Serial.println("   📊 Stato: IN_CODA - In attesa accettazione");
         Serial.println();
 
         // LED per indicare lavorazione in coda (specifica esame)
@@ -143,7 +135,7 @@ void parseLavorazione(String jsonString)
     }
     else
     {
-        Serial.println("JSON lavorazione non valido - campi 'id', 'name' e 'durata' richiesti");
+        Serial.println("❌ JSON lavorazione non valido - campi 'id', 'name' e 'durata' richiesti");
         MFS.write("BAD");
         delay(2000);
         MFS.write("WAIT");
@@ -225,11 +217,11 @@ void accettaLavorazione()
     // Notifica gateway
     Serial.println("ACCETTATA:" + String(lavorazioneId));
 
-    Serial.println("Lavorazione accettata:");
-    Serial.println("Nome: " + nomeLavorazione);
-    Serial.println("Display: " + displayName);
-    Serial.println("Stato: ACCETTATA - Pronta per avvio");
-    Serial.println("Premere pulsante 2 per avviare");
+    Serial.println("✅ Lavorazione accettata:");
+    Serial.println("   📝 Nome: " + nomeLavorazione);
+    Serial.println("   🆔 Display: " + displayName);
+    Serial.println("   📊 Stato: ACCETTATA - Pronta per avvio");
+    Serial.println("   💡 Premere pulsante 2 per avviare");
 }
 
 void avviaLavorazione()
@@ -249,11 +241,11 @@ void avviaLavorazione()
     // Notifica gateway
     Serial.println("AVVIATA:" + String(lavorazioneId));
 
-    Serial.println("Lavorazione avviata:");
-    Serial.println("Nome: " + nomeLavorazione);
-    Serial.println("Countdown: " + String(countdownSecondi) + " secondi");
-    Serial.println("Stato: COUNTDOWN_ATTIVO");
-    Serial.println("Premere pulsante 3 per cancellare");
+    Serial.println("🚀 Lavorazione avviata:");
+    Serial.println("   📝 Nome: " + nomeLavorazione);
+    Serial.println("   ⏱️  Countdown: " + String(countdownSecondi) + " secondi");
+    Serial.println("   📊 Stato: COUNTDOWN_ATTIVO");
+    Serial.println("   🚫 Premere pulsante 3 per cancellare");
 }
 
 void rifiutaLavorazione()
@@ -271,10 +263,10 @@ void rifiutaLavorazione()
     // Notifica gateway
     Serial.println("RIFIUTATA:" + String(lavorazioneId));
 
-    Serial.println("Lavorazione rifiutata:");
-    Serial.println("Nome: " + nomeLavorazione);
-    Serial.println("Stato: RIFIUTATA");
-    Serial.println("Display 'CANC' per 3 secondi");
+    Serial.println("❌ Lavorazione rifiutata:");
+    Serial.println("   📝 Nome: " + nomeLavorazione);
+    Serial.println("   📊 Stato: RIFIUTATA");
+    Serial.println("   ⏱️  Display 'CANC' per 3 secondi");
 }
 
 void cancellaLavorazione()
@@ -292,21 +284,23 @@ void cancellaLavorazione()
     // Notifica gateway
     Serial.println("CANCELLATA:" + String(lavorazioneId));
 
-    Serial.println("Lavorazione cancellata:");
-    Serial.println("Nome: " + nomeLavorazione);
-    Serial.println("Countdown interrotto a: " + String(countdownSecondi) + "s");
-    Serial.println("Stato: CANCELLATA");
+    Serial.println("🚫 Lavorazione cancellata:");
+    Serial.println("   📝 Nome: " + nomeLavorazione);
+    Serial.println("   ⏱️  Countdown interrotto a: " + String(countdownSecondi) + "s");
+    Serial.println("   📊 Stato: CANCELLATA");
 }
 
 void completaLavorazione()
 {
     currentState = LAVORAZIONE_COMPLETATA;
     stateChangeTime = millis();
-    beepEmitted = false; // Reset flag per permettere nuovo beep
 
-    // LED 4 per completamento (specifica esame)
+    // LED 4 per completamento + segnale acustico (specifica esame)
     MFS.writeLeds(LED_ALL, OFF);
     MFS.writeLeds(LED_4, ON);
+
+    // Segnale acustico (beep) - simulato con messaggio
+    MFS.beep();
 
     // Display "end" per 3 secondi (specifica esame)
     MFS.write("END");
@@ -314,11 +308,11 @@ void completaLavorazione()
     // Notifica gateway
     Serial.println("COMPLETATA:" + String(lavorazioneId));
 
-    Serial.println("Lavorazione completata!");
-    Serial.println("Nome: " + nomeLavorazione);
-    Serial.println("Durata: " + String(durataSecondi) + " secondi");
-    Serial.println("Stato: COMPLETATA");
-    Serial.println("Beep emesso + Display 'END' per 3 secondi");
+    Serial.println("🏁 Lavorazione completata!");
+    Serial.println("   📝 Nome: " + nomeLavorazione);
+    Serial.println("   ⏱️  Durata: " + String(durataSecondi) + " secondi");
+    Serial.println("   📊 Stato: COMPLETATA");
+    Serial.println("   🔊 Beep emesso + Display 'END' per 3 secondi");
 }
 
 // =====================================
@@ -389,14 +383,6 @@ void handleCurrentState()
         break;
 
     case LAVORAZIONE_COMPLETATA:
-        if (!beepEmitted)
-        {
-            // Un singolo beep di 250ms, senza delay che bloccano il loop
-            tone(BUZZER_PIN, 1000, 250); // 1000Hz per 250ms
-            Serial.println("🔊 Beep completamento emesso su Pin " + String(BUZZER_PIN) + "!");
-            beepEmitted = true;
-        }
-
         // Mostra "END" per 3 secondi, poi resetta
         if (currentTime - stateChangeTime > 3000)
         {
@@ -437,7 +423,6 @@ void resetSistema()
     lavorazioneId = 0;
     durataSecondi = 0;
     countdownSecondi = 0;
-    beepEmitted = false; // Reset flag beep
 
     MFS.writeLeds(LED_ALL, OFF);
     MFS.write("WAIT");
@@ -463,13 +448,15 @@ void printSystemStatus()
 }
 
 // =====================================
-// GESTIONE BUZZER
+// GESTIONE INTERRUPTS E BEEP
 // =====================================
-void emitCompletionBeep()
+
+// Funzione beep semplificata per Multi Function Shield
+void beepSound()
 {
-    // Un singolo beep semplice e efficace
-    tone(BUZZER_PIN, 1000, 250); // Pin 3, 1000Hz, 250ms
-    Serial.println("🔊 Beep completamento - Pin " + String(BUZZER_PIN));
+    // Il Multi Function Shield ha un buzzer integrato
+    // Questa funzione può essere espansa per gestire il beep
+    tone(8, 1000, 500); // Pin 8, 1000Hz, 500ms
 }
 
 // Debug function per stato LED
