@@ -97,7 +97,7 @@ void parseLavorazione(String jsonString)
 
     if (error)
     {
-        Serial.println("❌ Errore parsing JSON lavorazione: " + String(error.c_str()));
+        Serial.println("Errore parsing JSON lavorazione: " + String(error.c_str()));
         MFS.write("ERR");
         delay(2000);
         MFS.write("WAIT");
@@ -120,12 +120,12 @@ void parseLavorazione(String jsonString)
         currentState = LAVORAZIONE_IN_CODA;
         stateChangeTime = millis();
 
-        Serial.println("📋 Lavorazione ricevuta:");
-        Serial.println("   🆔 ID: " + String(lavorazioneId));
-        Serial.println("   🏷️  Identificativo: " + identificativo);
-        Serial.println("   📝 Nome: " + nomeLavorazione);
-        Serial.println("   ⏱️  Durata: " + String(durataSecondi) + " secondi");
-        Serial.println("   📊 Stato: IN_CODA - In attesa accettazione");
+        Serial.println("Lavorazione ricevuta:");
+        Serial.println("ID: " + String(lavorazioneId));
+        Serial.println("Identificativo: " + identificativo);
+        Serial.println("Nome: " + nomeLavorazione);
+        Serial.println("Durata: " + String(durataSecondi) + " secondi");
+        Serial.println("Stato: IN_CODA - In attesa accettazione");
         Serial.println();
 
         // LED per indicare lavorazione in coda (specifica esame)
@@ -135,7 +135,7 @@ void parseLavorazione(String jsonString)
     }
     else
     {
-        Serial.println("❌ JSON lavorazione non valido - campi 'id', 'name' e 'durata' richiesti");
+        Serial.println("JSON lavorazione non valido - campi 'id', 'name' e 'durata' richiesti");
         MFS.write("BAD");
         delay(2000);
         MFS.write("WAIT");
@@ -217,11 +217,11 @@ void accettaLavorazione()
     // Notifica gateway
     Serial.println("ACCETTATA:" + String(lavorazioneId));
 
-    Serial.println("✅ Lavorazione accettata:");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   🆔 Display: " + displayName);
-    Serial.println("   📊 Stato: ACCETTATA - Pronta per avvio");
-    Serial.println("   💡 Premere pulsante 2 per avviare");
+    Serial.println("Lavorazione accettata:");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Display: " + displayName);
+    Serial.println("Stato: ACCETTATA - Pronta per avvio");
+    Serial.println("Premere pulsante 2 per avviare");
 }
 
 void avviaLavorazione()
@@ -241,11 +241,11 @@ void avviaLavorazione()
     // Notifica gateway
     Serial.println("AVVIATA:" + String(lavorazioneId));
 
-    Serial.println("🚀 Lavorazione avviata:");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   ⏱️  Countdown: " + String(countdownSecondi) + " secondi");
-    Serial.println("   📊 Stato: COUNTDOWN_ATTIVO");
-    Serial.println("   🚫 Premere pulsante 3 per cancellare");
+    Serial.println("Lavorazione avviata:");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Countdown: " + String(countdownSecondi) + " secondi");
+    Serial.println("Stato: COUNTDOWN_ATTIVO");
+    Serial.println("Premere pulsante 3 per cancellare");
 }
 
 void rifiutaLavorazione()
@@ -263,10 +263,10 @@ void rifiutaLavorazione()
     // Notifica gateway
     Serial.println("RIFIUTATA:" + String(lavorazioneId));
 
-    Serial.println("❌ Lavorazione rifiutata:");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   📊 Stato: RIFIUTATA");
-    Serial.println("   ⏱️  Display 'CANC' per 3 secondi");
+    Serial.println("Lavorazione rifiutata:");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Stato: RIFIUTATA");
+    Serial.println("Display 'CANC' per 3 secondi");
 }
 
 void cancellaLavorazione()
@@ -284,10 +284,10 @@ void cancellaLavorazione()
     // Notifica gateway
     Serial.println("CANCELLATA:" + String(lavorazioneId));
 
-    Serial.println("🚫 Lavorazione cancellata:");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   ⏱️  Countdown interrotto a: " + String(countdownSecondi) + "s");
-    Serial.println("   📊 Stato: CANCELLATA");
+    Serial.println("Lavorazione cancellata:");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Countdown interrotto a: " + String(countdownSecondi) + "s");
+    Serial.println("Stato: CANCELLATA");
 }
 
 void completaLavorazione()
@@ -308,11 +308,11 @@ void completaLavorazione()
     // Notifica gateway
     Serial.println("COMPLETATA:" + String(lavorazioneId));
 
-    Serial.println("🏁 Lavorazione completata!");
-    Serial.println("   📝 Nome: " + nomeLavorazione);
-    Serial.println("   ⏱️  Durata: " + String(durataSecondi) + " secondi");
-    Serial.println("   📊 Stato: COMPLETATA");
-    Serial.println("   🔊 Beep emesso + Display 'END' per 3 secondi");
+    Serial.println("Lavorazione completata!");
+    Serial.println("Nome: " + nomeLavorazione);
+    Serial.println("Durata: " + String(durataSecondi) + " secondi");
+    Serial.println("Stato: COMPLETATA");
+    Serial.println("Beep emesso + Display 'END' per 3 secondi");
 }
 
 // =====================================
@@ -427,8 +427,8 @@ void resetSistema()
     MFS.writeLeds(LED_ALL, OFF);
     MFS.write("WAIT");
 
-    Serial.println("🔄 Sistema resettato - In attesa di nuova lavorazione");
-    Serial.println("📡 Pronto per prossima lavorazione");
+    Serial.println("Sistema resettato - In attesa di nuova lavorazione");
+    Serial.println("Pronto per prossima lavorazione");
     Serial.println();
 }
 

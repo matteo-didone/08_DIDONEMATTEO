@@ -1,5 +1,4 @@
 // gateway/gateway-api.js - Gateway API per Frontend Web
-// Sistema Gestione Lavorazioni Temporizzate - Prova d'Esame
 
 const express = require('express');
 const mysql = require('mysql2/promise');
@@ -10,7 +9,7 @@ const fs = require('fs');
 // Legge stato Arduino da file condiviso
 function getArduinoStatus() {
     try {
-        const statusFile = path.join(__dirname, '../arduino_status.json');
+        const statusFile = path.join(__dirname, 'arduino_status.json');
         if (fs.existsSync(statusFile)) {
             const statusData = fs.readFileSync(statusFile, 'utf8');
             const status = JSON.parse(statusData);
@@ -27,7 +26,7 @@ function getArduinoStatus() {
             };
         }
     } catch (error) {
-        console.error('❌ Errore lettura status Arduino:', error);
+        console.error('Errore lettura status Arduino:', error);
     }
 
     return {
@@ -61,7 +60,7 @@ async function getConnection() {
         const connection = await mysql.createConnection(dbConfig);
         return connection;
     } catch (error) {
-        console.error('❌ Errore connessione database:', error);
+        console.error('Errore connessione database:', error);
         throw error;
     }
 }
@@ -114,7 +113,7 @@ app.post('/api/lavorazioni', async (req, res) => {
 
         await connection.end();
 
-        console.log(`📝 Nuova lavorazione creata: ${identificativo} - ${nome} (${durata}s)`);
+        console.log(`Nuova lavorazione creata: ${identificativo} - ${nome} (${durata}s)`);
 
         res.json({
             success: true,
@@ -129,7 +128,7 @@ app.post('/api/lavorazioni', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Errore creazione lavorazione:', error);
+        console.error('Errore creazione lavorazione:', error);
         res.status(500).json({
             success: false,
             message: 'Errore del server: ' + error.message
@@ -152,7 +151,7 @@ app.get('/api/lavorazioni', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Errore lettura lavorazioni:', error);
+        console.error('Errore lettura lavorazioni:', error);
         res.status(500).json({
             success: false,
             message: 'Errore del server: ' + error.message
@@ -206,7 +205,7 @@ app.post('/api/lavorazioni/:id/invia', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Errore invio lavorazione:', error);
+        console.error('Errore invio lavorazione:', error);
         res.status(500).json({
             success: false,
             message: 'Errore del server: ' + error.message
@@ -235,7 +234,7 @@ app.get('/api/log', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Errore lettura log:', error);
+        console.error('Errore lettura log:', error);
         res.status(500).json({
             success: false,
             message: 'Errore del server: ' + error.message
@@ -284,7 +283,7 @@ app.get('/api/status', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Errore stato sistema:', error);
+        console.error('Errore stato sistema:', error);
         res.status(500).json({
             success: false,
             message: 'Errore del server: ' + error.message
@@ -332,7 +331,7 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error('❌ Server Error:', err.stack);
+    console.error('Server Error:', err.stack);
     res.status(500).json({
         success: false,
         message: 'Errore interno del server'
@@ -349,11 +348,11 @@ app.use((req, res) => {
 
 // Avvio server
 app.listen(PORT, () => {
-    console.log('🔧 ========================================');
+    console.log('========================================');
     console.log('   GATEWAY API SISTEMA LAVORAZIONI');
-    console.log('🔧 ========================================');
-    console.log(`🌐 Server in ascolto su http://localhost:${PORT}`);
-    console.log('📋 Endpoints API disponibili:');
+    console.log('========================================');
+    console.log(`Server in ascolto su http://localhost:${PORT}`);
+    console.log('Endpoints API disponibili:');
     console.log('   POST /api/lavorazioni - Crea lavorazione');
     console.log('   GET  /api/lavorazioni - Lista lavorazioni');
     console.log('   POST /api/lavorazioni/:id/invia - Invia ad Arduino');

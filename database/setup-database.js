@@ -1,5 +1,4 @@
 // database/setup-database.js - Setup Database per Esame
-// Sistema Gestione Lavorazioni Temporizzate
 
 const mysql = require('mysql2/promise');
 
@@ -15,35 +14,35 @@ async function setupDatabase() {
     let connection;
 
     try {
-        console.log('🔧 Setup Database Sistema Lavorazioni');
-        console.log('🗄️  Connessione a MySQL...');
+        console.log('Setup Database Sistema Lavorazioni');
+        console.log('Connessione a MySQL...');
 
         // Prima connessione senza database per crearlo
         const tempConfig = { ...dbConfig };
         delete tempConfig.database;
 
         let tempConnection = await mysql.createConnection(tempConfig);
-        console.log('✅ Connesso a MySQL!');
+        console.log('Connesso a MySQL!');
 
         // Droppa e ricrea database per setup pulito
-        console.log('🗑️  Drop database esistente...');
+        console.log('Drop database esistente...');
         await tempConnection.query('DROP DATABASE IF EXISTS esame');
-        console.log('✅ Database droppato!');
+        console.log('Database droppato!');
 
-        console.log('📋 Creazione database esame...');
+        console.log('Creazione database esame...');
         await tempConnection.query('CREATE DATABASE esame');
-        console.log('✅ Database creato!');
+        console.log('Database creato!');
 
         await tempConnection.end();
 
         // Nuova connessione con il database specificato
-        console.log('📋 Connessione al database esame...');
+        console.log('Connessione al database esame...');
         connection = await mysql.createConnection(dbConfig);
 
         // =====================================
         // TABELLA LAVORAZIONI
         // =====================================
-        console.log('📋 Creazione tabella lavorazioni...');
+        console.log('Creazione tabella lavorazioni...');
         const createLavorazioniTable = `
             CREATE TABLE IF NOT EXISTS lavorazioni (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -61,12 +60,12 @@ async function setupDatabase() {
             ) COMMENT='Tipi di lavorazione configurabili dal sistema'
         `;
         await connection.query(createLavorazioniTable);
-        console.log('✅ Tabella lavorazioni creata!');
+        console.log('Tabella lavorazioni creata!');
 
         // =====================================
         // TABELLA LOG  
         // =====================================
-        console.log('📋 Creazione tabella log...');
+        console.log('Creazione tabella log...');
         const createLogTable = `
             CREATE TABLE IF NOT EXISTS log (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -87,12 +86,12 @@ async function setupDatabase() {
             ) COMMENT='Log cronologico delle lavorazioni eseguite'
         `;
         await connection.query(createLogTable);
-        console.log('✅ Tabella log creata!');
+        console.log('Tabella log creata!');
 
         // =====================================
         // DATI DI ESEMPIO
         // =====================================
-        console.log('📋 Inserimento dati di esempio...');
+        console.log('Inserimento dati di esempio...');
         const insertExamples = `
             INSERT INTO lavorazioni (identificativo, nome, durata, stato) VALUES 
             ('LAV001', 'Lavorazione Standard', 30, 'CONFIGURATA'),
@@ -102,7 +101,7 @@ async function setupDatabase() {
             ('PROD01', 'Produzione Base', 60, 'CONFIGURATA')
         `;
         await connection.query(insertExamples);
-        console.log('✅ Dati di esempio inseriti!');
+        console.log('Dati di esempio inseriti!');
 
         // =====================================
         // VERIFICA INSTALLAZIONE
@@ -110,14 +109,14 @@ async function setupDatabase() {
         const [lavorazioniRows] = await connection.query('SELECT COUNT(*) as count FROM lavorazioni');
         const [logRows] = await connection.query('SELECT COUNT(*) as count FROM log');
 
-        console.log('\n🔧 ========================================');
+        console.log('\n========================================');
         console.log('   DATABASE SETUP COMPLETATO!');
-        console.log('🔧 ========================================');
-        console.log('✅ Database: esame');
-        console.log('✅ Tabelle: lavorazioni, log');
-        console.log(`✅ Lavorazioni disponibili: ${lavorazioniRows[0].count}`);
-        console.log(`✅ Log registrati: ${logRows[0].count}`);
-        console.log('\n📊 LAVORAZIONI DI ESEMPIO:');
+        console.log('========================================');
+        console.log('Database: esame');
+        console.log('Tabelle: lavorazioni, log');
+        console.log(`Lavorazioni disponibili: ${lavorazioniRows[0].count}`);
+        console.log(`Log registrati: ${logRows[0].count}`);
+        console.log('\nLAVORAZIONI DI ESEMPIO:');
 
         const [samples] = await connection.query(`
             SELECT identificativo, nome, durata, stato 
@@ -129,18 +128,18 @@ async function setupDatabase() {
             console.log(`   🔧 ${lav.identificativo} - ${lav.nome}: ${lav.durata}s (${lav.stato})`);
         });
 
-        console.log('\n💡 PROSSIMI STEP:');
+        console.log('\nPROSSIMI STEP:');
         console.log('1. Implementa gateway seriale per Arduino');
         console.log('2. Implementa gateway API per frontend');
         console.log('3. Sviluppa interfaccia web');
         console.log('4. Programma scheda Arduino');
-        console.log('🔧 ========================================\n');
+        console.log('========================================\n');
 
     } catch (error) {
-        console.error('❌ Errore setup database:', error);
+        console.error('Errore setup database:', error);
 
         if (error.code === 'ECONNREFUSED') {
-            console.log('\n💡 SUGGERIMENTI:');
+            console.log('\nSUGGERIMENTI:');
             console.log('1. Assicurati che MySQL sia in esecuzione');
             console.log('2. Verifica host, porta e credenziali in dbConfig');
             console.log('3. Su macOS: brew services start mysql');
