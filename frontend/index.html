@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full bg-gray-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Gestione Lavorazioni Temporizzate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1e40af'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="h-full bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">🔧 Sistema Gestione Lavorazioni</h1>
+                    <p class="text-sm text-gray-600 mt-1">Prova d'Esame - TECNICO SUPERIORE DIGITAL SOLUTIONS 4.0</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm font-medium text-gray-700">Database</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div id="arduino-indicator" class="w-3 h-3 bg-gray-400 rounded-full"></div>
+                        <span id="arduino-text" class="text-sm font-medium text-gray-700">Arduino</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Form Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">📝 Inserimento Nuova Lavorazione</h2>
+
+            <!-- Alert -->
+            <div id="alert" class="hidden mb-4 p-4 rounded-md">
+                <div class="flex">
+                    <div class="ml-3">
+                        <p id="alert-message" class="text-sm font-medium"></p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="lavorazioneForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Identificativo -->
+                    <div>
+                        <label for="identificativo" class="block text-sm font-medium text-gray-700 mb-2">
+                            🆔 Identificativo
+                        </label>
+                        <input type="text" id="identificativo" name="identificativo" placeholder="Es: LAV001, PROD01..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            required maxlength="50">
+                        <p class="mt-1 text-xs text-gray-500">Codice univoco della lavorazione</p>
+                    </div>
+
+                    <!-- Nome -->
+                    <div>
+                        <label for="nome" class="block text-sm font-medium text-gray-700 mb-2">
+                            📋 Nome Lavorazione
+                        </label>
+                        <input type="text" id="nome" name="nome" placeholder="Es: Lavorazione Standard..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            required maxlength="100">
+                        <p class="mt-1 text-xs text-gray-500">Descrizione del tipo di lavorazione</p>
+                    </div>
+
+                    <!-- Durata -->
+                    <div>
+                        <label for="durata" class="block text-sm font-medium text-gray-700 mb-2">
+                            ⏱️ Durata (secondi)
+                        </label>
+                        <input type="number" id="durata" name="durata" placeholder="Es: 30, 120..." min="1"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            required>
+                        <p class="mt-1 text-xs text-gray-500">Durata in secondi</p>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="resetBtn"
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                        🔄 Reset
+                    </button>
+                    <button type="submit" id="submitBtn"
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                        <span id="submitText">💾 Crea Lavorazione</span>
+                        <span id="loadingSpinner" class="hidden">⏳ Creazione...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+                            📋
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Lavorazioni Totali</p>
+                        <p id="total-lavorazioni" class="text-2xl font-semibold text-gray-900">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-md flex items-center justify-center">
+                            ⏳
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">In Coda/Inviate</p>
+                        <p id="pending-lavorazioni" class="text-2xl font-semibold text-gray-900">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
+                            ✅
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Completate</p>
+                        <p id="completed-lavorazioni" class="text-2xl font-semibold text-gray-900">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tables Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                    <button id="tab-lavorazioni"
+                        class="tab-button border-b-2 border-primary text-primary py-4 px-1 text-sm font-medium">
+                        📋 Lavorazioni
+                    </button>
+                    <button id="tab-storico"
+                        class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium">
+                        📊 Storico Log
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-6">
+                <!-- Lavorazioni Tab -->
+                <div id="content-lavorazioni" class="tab-content">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Stato delle Lavorazioni</h3>
+                        <button id="refresh-lavorazioni"
+                            class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary">
+                            🔄 Aggiorna
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        ID</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Identificativo</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Nome</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Durata</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Stato</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Creata</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lavorazioni-tbody" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                        Caricamento lavorazioni...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Storico Tab -->
+                <div id="content-storico" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Storico delle Lavorazioni</h3>
+                        <button id="refresh-storico"
+                            class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary">
+                            🔄 Aggiorna
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        ID Log</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Lavorazione</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Identificativo</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Stato</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Orario</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="storico-tbody" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                        Caricamento storico...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // =====================================
+        // VARIABILI GLOBALI
+        // =====================================
+        const form = document.getElementById('lavorazioneForm');
+        const alert = document.getElementById('alert');
+        const alertMessage = document.getElementById('alert-message');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        // =====================================
+        // UTILITY FUNCTIONS
+        // =====================================
+        function showAlert(message, type = 'success') {
+            alert.className = `p-4 rounded-md mb-4 ${type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`;
+            alertMessage.className = `text-sm font-medium ${type === 'success' ? 'text-green-800' : 'text-red-800'}`;
+            alertMessage.textContent = message;
+            alert.classList.remove('hidden');
+            setTimeout(() => alert.classList.add('hidden'), 5000);
+        }
+
+        function setLoading(loading) {
+            if (loading) {
+                submitText.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            } else {
+                submitText.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        }
+
+        function formatDateTime(dateString) {
+            return new Date(dateString).toLocaleString('it-IT');
+        }
+
+        function getStatoBadge(stato) {
+            const badges = {
+                'CONFIGURATA': 'bg-gray-100 text-gray-800',
+                'IN_CODA': 'bg-yellow-100 text-yellow-800',
+                'INVIATA': 'bg-blue-100 text-blue-800',
+                'ACCETTATA': 'bg-orange-100 text-orange-800',
+                'AVVIATA': 'bg-purple-100 text-purple-800',
+                'COMPLETATA': 'bg-green-100 text-green-800',
+                'RIFIUTATA': 'bg-red-100 text-red-800',
+                'CANCELLATA': 'bg-red-100 text-red-800'
+            };
+            return badges[stato] || 'bg-gray-100 text-gray-800';
+        }
+
+        // =====================================
+        // FORM HANDLING
+        // =====================================
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setLoading(true);
+
+            const formData = {
+                identificativo: document.getElementById('identificativo').value.trim(),
+                nome: document.getElementById('nome').value.trim(),
+                durata: parseInt(document.getElementById('durata').value)
+            };
+
+            try {
+                const response = await fetch('/api/lavorazioni', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('✅ ' + result.message, 'success');
+                    form.reset();
+                    loadLavorazioni();
+                    loadStats();
+                } else {
+                    showAlert('❌ ' + result.message, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('❌ Errore di connessione al server', 'error');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Reset form
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            form.reset();
+            alert.classList.add('hidden');
+        });
+
+        // =====================================
+        // DATA LOADING
+        // =====================================
+        async function loadLavorazioni() {
+            console.log('📋 Caricamento lavorazioni...');
+            try {
+                const response = await fetch('/api/lavorazioni');
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('📋 Lavorazioni ricevute:', result.data.length);
+                    displayLavorazioni(result.data);
+                } else {
+                    console.error('❌ API error:', result.message);
+                }
+            } catch (error) {
+                console.error('❌ Error loading lavorazioni:', error);
+                document.getElementById('lavorazioni-tbody').innerHTML =
+                    '<tr><td colspan="7" class="px-4 py-8 text-center text-red-500">Errore caricamento lavorazioni</td></tr>';
+            }
+        }
+
+        function displayLavorazioni(lavorazioni) {
+            console.log('📋 Displaying lavorazioni:', lavorazioni.length);
+            const tbody = document.getElementById('lavorazioni-tbody');
+
+            if (!tbody) {
+                console.error('❌ Element lavorazioni-tbody not found!');
+                return;
+            }
+
+            if (lavorazioni.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Nessuna lavorazione trovata</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = lavorazioni.map(lav => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">${lav.id}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">${lav.identificativo}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${lav.nome}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-center text-gray-900">${lav.durata}s</td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatoBadge(lav.stato)}">
+                            ${lav.stato}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateTime(lav.created_at)}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${lav.stato === 'CONFIGURATA' ? `
+                            <button class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary invia-btn" data-id="${lav.id}">
+                                📤 Invia ad Arduino
+                            </button>
+                        ` : `
+                            <span class="text-gray-400 text-xs">
+                                ${lav.stato === 'IN_CODA' ? '⏳ In coda' : lav.stato === 'INVIATA' ? '📤 Inviata' : '✅ Elaborata'}
+                            </span>
+                        `}
+                    </td>
+                </tr>
+            `).join('');
+
+            // Aggiungi event listeners ai pulsanti invia
+            document.querySelectorAll('.invia-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    inviaLavorazione(this.dataset.id);
+                });
+            });
+
+            console.log('✅ Tabella lavorazioni aggiornata');
+        }
+
+        async function loadStorico() {
+            console.log('📊 Caricamento storico...');
+            try {
+                const response = await fetch('/api/log');
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('📊 Log ricevuti:', result.data.length);
+                    displayStorico(result.data);
+                } else {
+                    console.error('❌ API error:', result.message);
+                }
+            } catch (error) {
+                console.error('❌ Error loading storico:', error);
+                document.getElementById('storico-tbody').innerHTML =
+                    '<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Errore caricamento storico</td></tr>';
+            }
+        }
+
+        function displayStorico(logs) {
+            console.log('📊 Displaying storico:', logs.length);
+            const tbody = document.getElementById('storico-tbody');
+
+            if (!tbody) {
+                console.error('❌ Element storico-tbody not found!');
+                return;
+            }
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Nessun log disponibile</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = logs.map(log => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">${log.id}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">${log.nome_lavorazione}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">${log.identificativo_lavorazione}</td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatoBadge(log.stato)}">
+                            ${log.stato}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateTime(log.orario_evento)}</td>
+                    <td class="px-4 py-4 text-sm text-gray-500">${log.note || '-'}</td>
+                </tr>
+            `).join('');
+
+            console.log('✅ Tabella storico aggiornata');
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/status');
+                const result = await response.json();
+
+                if (result.success) {
+                    // Aggiorna contatori
+                    const totalLavorazioni = result.statistiche.stati_lavorazioni
+                        .reduce((sum, item) => sum + item.count, 0);
+                    document.getElementById('total-lavorazioni').textContent = totalLavorazioni;
+
+                    // Calcola pending (IN_CODA + INVIATA)
+                    const pending = result.statistiche.stati_lavorazioni
+                        .filter(item => ['IN_CODA', 'INVIATA'].includes(item.stato))
+                        .reduce((sum, item) => sum + item.count, 0);
+                    document.getElementById('pending-lavorazioni').textContent = pending;
+
+                    // Per ora, non abbiamo ancora completate nel sistema
+                    document.getElementById('completed-lavorazioni').textContent = '0';
+
+                    // Aggiorna stato Arduino
+                    const arduinoIndicator = document.getElementById('arduino-indicator');
+                    const arduinoText = document.getElementById('arduino-text');
+
+                    if (result.sistema.arduino_connesso) {
+                        arduinoIndicator.className = 'w-3 h-3 bg-green-500 rounded-full animate-pulse';
+                        arduinoText.textContent = 'Arduino Online';
+                    } else {
+                        arduinoIndicator.className = 'w-3 h-3 bg-gray-400 rounded-full';
+                        arduinoText.textContent = 'Arduino Offline';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // =====================================
+        // AZIONI
+        // =====================================
+        async function inviaLavorazione(id) {
+            try {
+                const response = await fetch(`/api/lavorazioni/${id}/invia`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('✅ ' + result.message, 'success');
+                    loadLavorazioni();
+                    loadStorico();
+                    loadStats();
+                } else {
+                    showAlert('❌ ' + result.message, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error sending lavorazione:', error);
+                showAlert('❌ Errore invio lavorazione', 'error');
+            }
+        }
+
+        // =====================================
+        // TAB NAVIGATION
+        // =====================================
+        function switchTab(activeTabId, activeContentId) {
+            // Reset all tabs
+            document.querySelectorAll('.tab-button').forEach(tab => {
+                tab.className = 'tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium';
+            });
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Activate selected tab
+            document.getElementById(activeTabId).className = 'tab-button border-b-2 border-primary text-primary py-4 px-1 text-sm font-medium';
+            document.getElementById(activeContentId).classList.remove('hidden');
+        }
+
+        document.getElementById('tab-lavorazioni').addEventListener('click', () => {
+            switchTab('tab-lavorazioni', 'content-lavorazioni');
+        });
+
+        document.getElementById('tab-storico').addEventListener('click', () => {
+            switchTab('tab-storico', 'content-storico');
+            loadStorico(); // Carica storico solo quando necessario
+        });
+
+        // =====================================
+        // EVENT LISTENERS
+        // =====================================
+        document.getElementById('refresh-lavorazioni').addEventListener('click', loadLavorazioni);
+        document.getElementById('refresh-storico').addEventListener('click', loadStorico);
+
+        // =====================================
+        // INITIALIZATION
+        // =====================================
+        function initializeApp() {
+            console.log('🚀 Inizializzazione app...');
+            loadLavorazioni();
+            loadStats();
+
+            // Auto-refresh ogni 30 secondi
+            setInterval(() => {
+                loadLavorazioni();
+                loadStats();
+            }, 30000);
+
+            console.log('✅ App inizializzata');
+        }
+
+        // Assicurati che il DOM sia caricato
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+
+</html>
