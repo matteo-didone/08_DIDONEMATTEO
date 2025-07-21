@@ -463,24 +463,13 @@ void printSystemStatus()
 }
 
 // =====================================
-// GESTIONE BUZZER CORRETTO
+// GESTIONE BUZZER
 // =====================================
 void emitCompletionBeep()
 {
     // Un singolo beep semplice e efficace
     tone(BUZZER_PIN, 1000, 250); // Pin 3, 1000Hz, 250ms
     Serial.println("🔊 Beep completamento - Pin " + String(BUZZER_PIN));
-}
-
-// Funzione per beep di completamento
-void emitCompletionBeep()
-{
-    Serial.println("🔊 Beep completamento - Pin " + String(BUZZER_PIN));
-    tone(BUZZER_PIN, 1000, 250);
-    delay(250);
-    tone(BUZZER_PIN, 1500, 250);
-    delay(250);
-    tone(BUZZER_PIN, 1000, 250);
 }
 
 // Debug function per stato LED
