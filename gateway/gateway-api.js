@@ -292,6 +292,39 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
+app.get('/api/progress', (req, res) => {
+    try {
+        const statusFile = path.join(__dirname, '../arduino_status.json');
+        if (fs.existsSync(statusFile)) {
+            const statusData = fs.readFileSync(statusFile, 'utf8');
+            const status = JSON.parse(statusData);
+
+            res.json({
+                success: true,
+                progress: status.currentWork || {
+                    active: false,
+                    lavorazioneId: null,
+                    nome: '',
+                    identificativo: '',
+                    remaining: 0,
+                    duration: 0,
+                    status: 'WAITING'
+                }
+            });
+        } else {
+            res.json({
+                success: true,
+                progress: { active: false }
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Errore lettura progress: ' + error.message
+        });
+    }
+});
+
 // Serve frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend', 'index.html'));

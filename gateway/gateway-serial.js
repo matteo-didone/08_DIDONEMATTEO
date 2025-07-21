@@ -1,4 +1,4 @@
-// gateway/gateway-serial.js - Gateway Seriale per Arduino
+// gateway/gateway-serial.js - Gateway Seriale REALE per Arduino
 // Sistema Gestione Lavorazioni Temporizzate - Prova d'Esame
 
 const mysql = require('mysql2/promise');
@@ -25,12 +25,26 @@ let parser = null;
 let isArduinoConnected = false;
 let currentArduinoPort = null;
 
+// *** AGGIUNTO: TRACKING REALE LAVORAZIONE ATTIVA ***
+let currentWorkProgress = {
+    active: false,
+    lavorazioneId: null,
+    identificativo: '',
+    nome: '',
+    startTime: null,
+    duration: 0,
+    remaining: 0,
+    status: 'WAITING'
+};
+
 // Aggiorna stato Arduino su file
 function updateArduinoStatus(connected, port = null) {
     const status = {
         connected: connected,
         port: port,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        // *** AGGIUNTO: Include progress nella status ***
+        currentWork: currentWorkProgress
     };
 
     try {
@@ -48,6 +62,74 @@ async function getConnection() {
     } catch (error) {
         console.error('❌ Errore connessione database:', error);
         throw error;
+    }
+}
+
+// =====================================
+// GESTIONE PROGRESS REALE LAVORAZIONE
+// =====================================
+
+function startWorkProgress(lavorazioneId, identificativo, nome, durata) {
+    currentWorkProgress = {
+        active: true,
+        lavorazioneId: lavorazioneId,
+        identificativo: identificativo,
+        nome: nome,
+        startTime: Date.now(),
+        duration: durata,
+        remaining: durata,
+        status: 'AVVIATA'
+    };
+
+    console.log(`🚀 [PROGRESS] Avviato tracking per ${identificativo} - ${durata}s`);
+    updateArduinoStatus(isArduinoConnected, currentArduinoPort);
+}
+
+function updateWorkProgress() {
+    if (!currentWorkProgress.active) return;
+
+    const elapsed = Math.floor((Date.now() - currentWorkProgress.startTime) / 1000);
+    currentWorkProgress.remaining = Math.max(0, currentWorkProgress.duration - elapsed);
+
+    // Log ogni 5 secondi per debug
+    if (elapsed % 5 === 0 && currentWorkProgress.remaining > 0) {
+        console.log(`⏱️  [PROGRESS] ${currentWorkProgress.identificativo}: ${currentWorkProgress.remaining}s rimanenti`);
+    }
+
+    updateArduinoStatus(isArduinoConnected, currentArduinoPort);
+}
+
+function completeWorkProgress(lavorazioneId) {
+    if (currentWorkProgress.lavorazioneId === parseInt(lavorazioneId)) {
+        console.log(`🏁 [PROGRESS] Completato tracking per ${currentWorkProgress.identificativo}`);
+        currentWorkProgress = {
+            active: false,
+            lavorazioneId: null,
+            identificativo: '',
+            nome: '',
+            startTime: null,
+            duration: 0,
+            remaining: 0,
+            status: 'COMPLETATA'
+        };
+        updateArduinoStatus(isArduinoConnected, currentArduinoPort);
+    }
+}
+
+function cancelWorkProgress(lavorazioneId) {
+    if (currentWorkProgress.lavorazioneId === parseInt(lavorazioneId)) {
+        console.log(`🚫 [PROGRESS] Cancellato tracking per ${currentWorkProgress.identificativo}`);
+        currentWorkProgress = {
+            active: false,
+            lavorazioneId: null,
+            identificativo: '',
+            nome: '',
+            startTime: null,
+            duration: 0,
+            remaining: 0,
+            status: 'CANCELLATA'
+        };
+        updateArduinoStatus(isArduinoConnected, currentArduinoPort);
     }
 }
 
@@ -198,7 +280,7 @@ async function initializeArduino() {
     }
 }
 
-// Gestisci risposte Arduino
+// *** MIGLIORATO: Gestisci risposte Arduino con tracking reale ***
 async function handleArduinoResponse(message) {
     try {
         // Filtra messaggi di debug/info
@@ -217,27 +299,63 @@ async function handleArduinoResponse(message) {
         else if (message.includes('AVVIATA:')) {
             const lavorazioneId = message.split(':')[1];
             await logStato(lavorazioneId, 'AVVIATA', 'Lavorazione avviata - countdown iniziato (Pulsante 2)');
-            console.log(`🚀 Lavorazione ${lavorazioneId} avviata - countdown attivo`);
+
+            // *** AGGIUNTO: Avvia tracking reale ***
+            const lavorazione = await getLavorazioneById(lavorazioneId);
+            if (lavorazione) {
+                startWorkProgress(lavorazioneId, lavorazione.identificativo, lavorazione.nome, lavorazione.durata);
+            }
+
+            console.log(`🚀 Lavorazione ${lavorazioneId} avviata - tracking attivo`);
         }
         else if (message.includes('COMPLETATA:')) {
             const lavorazioneId = message.split(':')[1];
             await logStato(lavorazioneId, 'COMPLETATA', 'Lavorazione completata con successo - beep emesso');
+
+            // *** AGGIUNTO: Completa tracking reale ***
+            completeWorkProgress(lavorazioneId);
+
             console.log(`🏁 Lavorazione ${lavorazioneId} completata con successo`);
         }
         else if (message.includes('RIFIUTATA:')) {
             const lavorazioneId = message.split(':')[1];
             await logStato(lavorazioneId, 'RIFIUTATA', 'Lavorazione rifiutata dall operatore (Pulsante 3)');
             await resetStatoLavorazione(lavorazioneId);
+
+            // *** AGGIUNTO: Cancella tracking se attivo ***
+            cancelWorkProgress(lavorazioneId);
+
             console.log(`❌ Lavorazione ${lavorazioneId} rifiutata da Arduino`);
         }
         else if (message.includes('CANCELLATA:')) {
             const lavorazioneId = message.split(':')[1];
             await logStato(lavorazioneId, 'CANCELLATA', 'Lavorazione cancellata durante countdown (Pulsante 3)');
             await resetStatoLavorazione(lavorazioneId);
+
+            // *** AGGIUNTO: Cancella tracking reale ***
+            cancelWorkProgress(lavorazioneId);
+
             console.log(`🚫 Lavorazione ${lavorazioneId} cancellata da Arduino`);
         }
     } catch (error) {
         console.error('❌ Errore gestione risposta Arduino:', error);
+    }
+}
+
+// *** AGGIUNTO: Funzione per ottenere lavorazione da ID ***
+async function getLavorazioneById(lavorazioneId) {
+    try {
+        const connection = await getConnection();
+        const [rows] = await connection.execute(
+            'SELECT * FROM lavorazioni WHERE id = ?',
+            [lavorazioneId]
+        );
+        await connection.end();
+
+        return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+        console.error('❌ Errore recupero lavorazione:', error);
+        return null;
     }
 }
 
@@ -363,6 +481,10 @@ async function pollNuoveLavorazioni() {
     }
 }
 
+function getCurrentProgress() {
+    return currentWorkProgress;
+}
+
 // =====================================
 // STARTUP
 // =====================================
@@ -370,7 +492,7 @@ async function pollNuoveLavorazioni() {
 async function startGatewaySeriale() {
     try {
         console.log('🤖 ========================================');
-        console.log('   GATEWAY SERIALE ARDUINO');
+        console.log('   GATEWAY SERIALE ARDUINO - REALE');
         console.log('🤖 ========================================');
         console.log('🚀 Avvio Gateway Seriale Arduino...');
 
@@ -396,19 +518,24 @@ async function startGatewaySeriale() {
         setInterval(pollNuoveLavorazioni, 1000);
         console.log('🔄 Polling database attivato (1 secondo)');
 
+        // *** AGGIUNTO: Update progress reale ogni secondo ***
+        setInterval(updateWorkProgress, 1000);
+        console.log('⏱️  Progress tracking attivato (1 secondo)');
+
         // Aggiorna stato Arduino ogni 5 secondi
         setInterval(() => {
             updateArduinoStatus(isArduinoConnected, currentArduinoPort);
         }, 5000);
 
         console.log('\n🤖 ========================================');
-        console.log('     GATEWAY SERIALE ATTIVO');
+        console.log('     GATEWAY SERIALE REALE ATTIVO');
         console.log('🤖 ========================================');
         console.log(`📡 Arduino: ${isArduinoConnected ? '✅ Connesso' : '⚠️  Simulazione'}`);
         if (isArduinoConnected) {
             console.log(`📟 Porta: ${currentArduinoPort}`);
         }
         console.log('🔄 Polling: Attivo ogni 1 secondo');
+        console.log('⏱️  Progress: Tracking reale attivato');
         console.log('📋 Monitoraggio tabella: lavorazioni (stato=IN_CODA)');
         console.log('📝 Logging: tabella log');
         console.log('🤖 ========================================\n');
@@ -438,4 +565,4 @@ if (require.main === module) {
     startGatewaySeriale();
 }
 
-module.exports = { startGatewaySeriale };
+module.exports = { startGatewaySeriale, getCurrentProgress };

@@ -128,9 +128,6 @@ void parseLavorazione(String jsonString)
         Serial.println("   📊 Stato: IN_CODA - In attesa accettazione");
         Serial.println();
 
-        // LED per indicare lavorazione in coda (specifica esame)
-        MFS.writeLeds(LED_ALL, OFF);
-        MFS.writeLeds(LED_1, ON); // LED 1 = lavorazione in coda
         MFS.write("CODA");
     }
     else
@@ -206,9 +203,6 @@ void accettaLavorazione()
     currentState = LAVORAZIONE_ACCETTATA;
     stateChangeTime = millis();
 
-    // LED spenti, display primi caratteri nome (specifica esame)
-    MFS.writeLeds(LED_ALL, OFF);
-
     // Mostra primi caratteri nome lavorazione sul display
     String displayName = nomeLavorazione.substring(0, min(4, (int)nomeLavorazione.length()));
     displayName.toUpperCase();
@@ -231,10 +225,6 @@ void avviaLavorazione()
     lastCountdown = millis();
     stateChangeTime = millis();
 
-    // LED 2 acceso durante lavorazione (specifica esame)
-    MFS.writeLeds(LED_ALL, OFF);
-    MFS.writeLeds(LED_2, ON); // LED 2 = lavorazione in corso
-
     // Display countdown
     updateCountdownDisplay();
 
@@ -253,10 +243,6 @@ void rifiutaLavorazione()
     currentState = LAVORAZIONE_RIFIUTATA;
     stateChangeTime = millis();
 
-    // LED 3 per rifiuto (specifica esame)
-    MFS.writeLeds(LED_ALL, OFF);
-    MFS.writeLeds(LED_3, ON);
-
     // Display "canc" per 3 secondi (specifica esame)
     MFS.write("CANC");
 
@@ -274,10 +260,6 @@ void cancellaLavorazione()
     currentState = LAVORAZIONE_RIFIUTATA;
     stateChangeTime = millis();
 
-    // LED 3 per cancellazione
-    MFS.writeLeds(LED_ALL, OFF);
-    MFS.writeLeds(LED_3, ON);
-
     // Display "canc" per 3 secondi
     MFS.write("CANC");
 
@@ -294,13 +276,6 @@ void completaLavorazione()
 {
     currentState = LAVORAZIONE_COMPLETATA;
     stateChangeTime = millis();
-
-    // LED 4 per completamento + segnale acustico (specifica esame)
-    MFS.writeLeds(LED_ALL, OFF);
-    MFS.writeLeds(LED_4, ON);
-
-    // Segnale acustico (beep) - simulato con messaggio
-    MFS.beep();
 
     // Display "end" per 3 secondi (specifica esame)
     MFS.write("END");
@@ -323,6 +298,9 @@ void handleCurrentState()
 {
     unsigned long currentTime = millis();
 
+    // *** AGGIUNGI QUESTA RIGA ***
+    updateLEDStates();
+
     switch (currentState)
     {
     case WAITING_LAVORAZIONE:
@@ -339,7 +317,8 @@ void handleCurrentState()
         if (currentTime - lastUpdate > 1000)
         {
             static bool showCoda = true;
-            MFS.writeLeds(LED_1, ON);
+            // *** RIMUOVI QUESTA RIGA ***
+            // MFS.writeLeds(LED_1, ON);
 
             if (showCoda)
             {
@@ -383,6 +362,12 @@ void handleCurrentState()
         break;
 
     case LAVORAZIONE_COMPLETATA:
+        // *** MODIFICA: Beep migliorato ***
+        if (currentTime - stateChangeTime < 500)
+        {
+            emitCompletionBeep();
+        }
+
         // Mostra "END" per 3 secondi, poi resetta
         if (currentTime - stateChangeTime > 3000)
         {
@@ -445,6 +430,63 @@ void printSystemStatus()
     Serial.println("Durata: " + String(durataSecondi) + "s");
     Serial.println("Countdown: " + String(countdownSecondi) + "s");
     Serial.println("============================");
+}
+
+// =====================================
+// GESTIONE LED MIGLIORATA - SPECIFICHE ESAME
+// =====================================
+
+void updateLEDStates()
+{
+    // Spegni tutti i LED prima di impostare il nuovo stato
+    MFS.writeLeds(LED_ALL, OFF);
+
+    switch (currentState)
+    {
+    case LAVORAZIONE_IN_CODA:
+        // LED 1 = lavorazione in coda (specifica esame)
+        MFS.writeLeds(LED_1, ON);
+        break;
+
+    case LAVORAZIONE_ACCETTATA:
+        // LED spenti durante visualizzazione nome (specifica esame)
+        MFS.writeLeds(LED_ALL, OFF);
+        break;
+
+    case COUNTDOWN_ATTIVO:
+        // LED 2 = lavorazione in corso (specifica esame)
+        MFS.writeLeds(LED_2, ON);
+        break;
+
+    case LAVORAZIONE_RIFIUTATA:
+        // LED 3 = rifiuto/cancellazione (specifica esame)
+        MFS.writeLeds(LED_3, ON);
+        break;
+
+    case LAVORAZIONE_COMPLETATA:
+        // LED 4 = completamento (specifica esame)
+        MFS.writeLeds(LED_4, ON);
+        break;
+
+    case WAITING_LAVORAZIONE:
+    default:
+        // Tutti LED spenti in attesa
+        MFS.writeLeds(LED_ALL, OFF);
+        break;
+    }
+}
+
+// Migliora la funzione beep per essere più chiara
+void emitCompletionBeep()
+{
+    // Beep più distintivo per fine lavorazione - 250ms come richiesto
+    for (int i = 0; i < 3; i++)
+    {
+        tone(8, 1000, 250); // 1000Hz per 250ms
+        delay(250);
+        tone(8, 1500, 250); // 1500Hz per 250ms
+        delay(250);
+    }
 }
 
 // =====================================
