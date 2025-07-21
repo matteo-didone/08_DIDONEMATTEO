@@ -9,7 +9,7 @@ const fs = require('fs');
 // Legge stato Arduino da file condiviso
 function getArduinoStatus() {
     try {
-        const statusFile = path.join(__dirname, 'arduino_status.json');
+        const statusFile = path.join(__dirname, '../arduino_status.json');
         if (fs.existsSync(statusFile)) {
             const statusData = fs.readFileSync(statusFile, 'utf8');
             const status = JSON.parse(statusData);

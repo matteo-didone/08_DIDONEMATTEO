@@ -16,7 +16,7 @@ const dbConfig = {
 };
 
 // File di stato condiviso
-const statusFile = path.join(__dirname, 'arduino_status.json');
+const statusFile = path.join(__dirname, '../arduino_status.json');
 
 // Arduino Serial Configuration
 let serialPort = null;
